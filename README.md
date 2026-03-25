@@ -11,7 +11,7 @@
 
 ## Live Demo
 
-[Demo]([https://github.com/langgenius/dify](https://www.loom.com/share/54d272fd6e8e485ca1edea5d0200e397) 
+[Demo](https://www.loom.com/share/54d272fd6e8e485ca1edea5d0200e397) 
 
 
 Ask a question → the agent searches a knowledge base, drafts an answer, validates it
