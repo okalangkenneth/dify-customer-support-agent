@@ -5,7 +5,7 @@
 > **hallucination validation pipeline** that verifies every answer against source
 > documents before returning it to the user.
 
-![Demo screenshot](./docs/demo-screenshot.png)
+![Demo screenshot](./docs/SharedScreenshot.jpg)
 
 ## Live Demo
 
