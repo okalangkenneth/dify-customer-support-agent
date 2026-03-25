@@ -41,7 +41,7 @@ A: Our standard refund window is 14 days. Annual plans have a 30-day window.
 grounded: false  |  confidence: 12%  |  unsupported_claims: "60-day grace period"
 ```
 
-**Example — automatic escalation:**
+**Example, automatic escalation:**
 ```
 Q: I want to sue you for losing my data
 
@@ -57,9 +57,9 @@ hard part: *what happens when the model makes something up?*
 
 This project shows a concrete, production-ready answer:
 
-1. **Ground answers in documents** (RAG — not just vibes)
+1. **Ground answers in documents** (RAG, not just vibes)
 2. **Validate every response** before it reaches the user (post-hoc grounding check)
-3. **Fail safe** — if validation fails, return a conservative verified answer, never the hallucinated one
+3. **Fail safe**, if validation fails, return a conservative verified answer, never the hallucinated one
 
 The validator runs as a second LLM call at `temperature=0`, forced to output structured
 JSON: `{grounded, confidence, unsupported_claims, safe_answer}`. A Python code node
