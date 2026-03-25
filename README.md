@@ -130,7 +130,7 @@ The retrieval uses semantic search — not keyword matching.
 
 ---
 
-## Hallucination Mitigation — How It Works
+## Hallucination Mitigation.  How It Works
 
 The validator prompt is the heart of the project:
 
@@ -163,7 +163,7 @@ else:
     final = "I don't have enough verified information..."
 ```
 
-This means the validator doesn't just *flag* hallucinations — it also *fixes* them
+This means the validator doesn't just *flag* hallucinations  it also *fixes* them
 by writing a grounded alternative. The user always gets a useful response.
 
 ---
