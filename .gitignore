@@ -1,0 +1,10 @@
+# .gitignore — dify-customer-support-agent
+dify/docker/.env
+dify/docker/.env.local
+*.env
+.env.*
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+node_modules/

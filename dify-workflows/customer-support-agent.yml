@@ -1,0 +1,379 @@
+app:
+  description: 'Customer Support Agent with RAG, tool calling, and hallucination validation'
+  icon: "\U0001F3A7"
+  icon_background: '#EFF1F5'
+  mode: workflow
+  name: Customer Support Agent
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: knowledge-retrieval
+      id: edge-start-to-kb
+      source: start_node
+      sourceHandle: source
+      target: kb_search
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: edge-kb-to-agent
+      source: kb_search
+      sourceHandle: source
+      target: agent_llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: edge-agent-to-validator
+      source: agent_llm
+      sourceHandle: source
+      target: hallucination_validator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: edge-validator-to-enforcer
+      source: hallucination_validator
+      sourceHandle: source
+      target: grounding_enforcer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: edge-enforcer-to-end
+      source: grounding_enforcer
+      sourceHandle: source
+      target: end_node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+
+    - data:
+        desc: Customer enters their support question
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: Customer Question
+          max_length: 1000
+          options: []
+          required: true
+          type: paragraph
+          variable: user_question
+      height: 116
+      id: start_node
+      position: {x: 30, y: 200}
+      positionAbsolute: {x: 30, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+
+    # ─── KNOWLEDGE RETRIEVAL NODE ───────────────────────────────────────────────
+    # After importing this DSL, open the KB Search node in the Dify UI and:
+    # 1. Click "Add" under Knowledge Base
+    # 2. Select the knowledge base you uploaded the 3 docs to
+    # 3. Save and publish
+    - data:
+        dataset_configs:
+          datasets:
+            datasets: []
+          retrieval_model: multiple
+        dataset_query_variable_selector:
+        - start_node
+        - user_question
+        desc: Retrieves relevant docs from the knowledge base
+        query_variable_selector:
+        - start_node
+        - user_question
+        retrieval_mode: multiple
+        selected: false
+        title: Search Knowledge Base
+        type: knowledge-retrieval
+      height: 122
+      id: kb_search
+      position: {x: 334, y: 200}
+      positionAbsolute: {x: 334, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+
+    # ─── AGENT LLM NODE ─────────────────────────────────────────────────────────
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - kb_search
+          - result
+        desc: Drafts an answer grounded in retrieved knowledge base context
+        memory:
+          enabled: false
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params:
+            max_tokens: 1500
+            temperature: 0.3
+          mode: chat
+          name: claude-haiku-4-5-20251001
+          provider: anthropic
+        prompt_template:
+        - role: system
+          text: "You are a knowledgeable customer support agent for SupportDesk\
+            \ Pro, a SaaS help desk platform.\n\nYou have been given relevant\
+            \ excerpts from the official knowledge base (shown in CONTEXT above).\n\
+            \nRules you must follow:\n1. Base your answer ONLY on the provided\
+            \ context. Do not invent prices, features, or policies.\n2. If the\
+            \ context does not cover the question, say: \"I don\u2019t have\
+            \ enough information to answer this. Please contact support@supportdeskpro.com.\"\
+            \n3. Be concise and friendly.\n4. When quoting a number, policy, or\
+            \ feature detail, mention which document it came from.\n5. If the\
+            \ question involves a legal dispute, lawsuit, or fraud allegation,\
+            \ respond only with: \"This requires human review. Please email support@supportdeskpro.com.\"\
+            \n"
+        - role: user
+          text: '{{#start_node.user_question#}}'
+        retry_config:
+          enabled: true
+          exponential_backoff:
+            enabled: false
+            max_interval: 10000
+            multiplier: 2
+          max_retries: 2
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          enabled: false
+        title: Support Agent
+        type: llm
+        vision:
+          configs:
+            variable_selector: []
+          enabled: false
+      height: 122
+      id: agent_llm
+      position: {x: 638, y: 200}
+      positionAbsolute: {x: 638, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+
+    # ─── HALLUCINATION VALIDATOR NODE ───────────────────────────────────────────
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: Checks whether the draft answer is grounded in retrieved documents
+        memory:
+          enabled: false
+          window:
+            enabled: false
+            size: 50
+        model:
+          completion_params:
+            max_tokens: 1000
+            temperature: 0
+          mode: chat
+          name: claude-haiku-4-5-20251001
+          provider: anthropic
+        prompt_template:
+        - role: system
+          text: "You are a hallucination detection system. Your sole job is to\
+            \ verify whether an AI-generated answer is fully supported by\
+            \ retrieved source documents.\n\nRespond ONLY with valid JSON.\
+            \ No preamble, no markdown fences, no extra text.\n\nRequired\
+            \ format:\n{\n  \"grounded\": true or false,\n  \"confidence\"\
+            : 0.0 to 1.0,\n  \"unsupported_claims\": [\"list each claim\
+            \ not found in the context\"],\n  \"safe_answer\": \"if grounded\
+            \ is true copy the draft answer verbatim; if false write a\
+            \ conservative answer that only uses what IS in the context,\
+            \ or direct the user to support@supportdeskpro.com\"\n}\n\n\
+            Rules:\n- grounded is true ONLY when every factual claim in\
+            \ the draft answer is explicitly stated in the RETRIEVED CONTEXT\n\
+            - If the RETRIEVED CONTEXT is empty or irrelevant, grounded\
+            \ must be false\n- safe_answer must never introduce facts not\
+            \ in the RETRIEVED CONTEXT\n- Prices, dates, limits, and policy\
+            \ details are high-risk — require explicit context support\n"
+        - role: user
+          text: "RETRIEVED CONTEXT:\n{{#kb_search.result#}}\n\nDRAFT\
+            \ ANSWER:\n{{#agent_llm.text#}}\n\nUSER QUESTION:\n{{#start_node.user_question#}}\n\
+            \nAnalyse the draft answer and respond with JSON only.\n"
+        retry_config:
+          enabled: true
+          exponential_backoff:
+            enabled: false
+            max_interval: 10000
+            multiplier: 2
+          max_retries: 2
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          enabled: false
+        title: Hallucination Validator
+        type: llm
+        vision:
+          configs:
+            variable_selector: []
+          enabled: false
+      height: 122
+      id: hallucination_validator
+      position: {x: 942, y: 200}
+      positionAbsolute: {x: 942, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+
+    # ─── GROUNDING ENFORCER CODE NODE ───────────────────────────────────────────
+    - data:
+        code: "import json\nimport re\n\ndef main(validator_output: str, draft_answer:\
+          \ str) -> dict:\n    # Strip markdown code fences the LLM sometimes wraps\
+          \ around JSON\n    clean = re.sub(r'```(?:json)?|```', '', validator_output).strip()\n\
+          \    try:\n        result = json.loads(clean)\n    except Exception as e:\n\
+          \        # Validator output was malformed — fail safe\n        return {\n\
+          \            \"final_answer\": \"I\\'m sorry, I couldn\\'t verify this\
+          \ answer safely. Please contact support@supportdeskpro.com.\",\n        \
+          \    \"grounded\": \"false\",\n            \"unsupported_claims\": f\"validator_parse_error:\
+          \ {str(e)}\"\n        }\n\n    grounded = result.get(\"grounded\", False)\n\
+          \n    if grounded:\n        final = draft_answer\n    else:\n        safe\
+          \ = result.get(\"safe_answer\", \"\").strip()\n        # Only use safe_answer\
+          \ if it is substantive\n        if safe and len(safe) > 30:\n            final\
+          \ = safe\n        else:\n            final = (\"I don\\'t have enough verified\
+          \ information in my knowledge base \"\n                     \"to answer\
+          \ this confidently. Please contact \"\n                     \"support@supportdeskpro.com\
+          \ for assistance.\")\n\n    claims = result.get(\"unsupported_claims\",\
+          \ [])\n    if isinstance(claims, list):\n        claims_str = \"; \".join(claims)\
+          \ if claims else \"none\"\n    else:\n        claims_str = str(claims)\n\
+          \n    confidence = str(result.get(\"confidence\", 0.0))\n\n    return {\n\
+          \        \"final_answer\": final,\n        \"grounded\": str(grounded).lower(),\n\
+          \        \"unsupported_claims\": claims_str,\n        \"confidence\": confidence\n\
+          \    }\n"
+        code_language: python3
+        desc: Enforces grounding — swaps in safe_answer if hallucination detected
+        outputs:
+          confidence:
+            children: null
+            type: string
+          final_answer:
+            children: null
+            type: string
+          grounded:
+            children: null
+            type: string
+          unsupported_claims:
+            children: null
+            type: string
+        selected: false
+        title: Grounding Enforcer
+        type: code
+        variables:
+        - label: validator_output
+          value_selector:
+          - hallucination_validator
+          - text
+          variable: validator_output
+        - label: draft_answer
+          value_selector:
+          - agent_llm
+          - text
+          variable: draft_answer
+      height: 122
+      id: grounding_enforcer
+      position: {x: 1246, y: 200}
+      positionAbsolute: {x: 1246, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+
+    # ─── END NODE ────────────────────────────────────────────────────────────────
+    - data:
+        desc: Returns verified answer plus validation metadata
+        outputs:
+        - value_selector:
+          - grounding_enforcer
+          - final_answer
+          value_type: string
+          variable: final_answer
+        - value_selector:
+          - grounding_enforcer
+          - grounded
+          value_type: string
+          variable: grounded
+        - value_selector:
+          - grounding_enforcer
+          - unsupported_claims
+          value_type: string
+          variable: unsupported_claims
+        - value_selector:
+          - grounding_enforcer
+          - confidence
+          value_type: string
+          variable: confidence
+        selected: false
+        title: End
+        type: end
+      height: 122
+      id: end_node
+      position: {x: 1550, y: 200}
+      positionAbsolute: {x: 1550, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.6

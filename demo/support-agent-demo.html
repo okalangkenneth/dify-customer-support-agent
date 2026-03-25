@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Support Agent — SupportDesk Pro</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 80px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.5px;
+    }
+    .header p {
+      margin-top: 8px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #7dd3fc;
+      margin-top: 12px;
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .suggested-label {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .suggested-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .pill {
+      background: #0f1723;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pill:hover { background: #1e3a5f; border-color: #3b82f6; color: #e2e8f0; }
+
+    textarea {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #f1f5f9;
+      font-size: 15px;
+      padding: 14px 16px;
+      resize: vertical;
+      min-height: 90px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    textarea:focus { border-color: #3b82f6; }
+
+    .send-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    button#ask-btn {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button#ask-btn:hover { background: #2563eb; }
+    button#ask-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+    /* ── response area ── */
+    .response-area { margin-top: 28px; }
+
+    .answer-box {
+      background: #0f1117;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 18px;
+      font-size: 15px;
+      line-height: 1.65;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      min-height: 60px;
+    }
+    .answer-box.loading { color: #475569; font-style: italic; }
+
+    /* validation bar */
+    .validation-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .v-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .v-chip.grounded-true  { background: #052e16; border-color: #16a34a; color: #4ade80; }
+    .v-chip.grounded-false { background: #2d0a0a; border-color: #dc2626; color: #f87171; }
+    .v-chip.grounded-null  { background: #1e293b; border-color: #475569; color: #94a3b8; }
+    .v-chip.confidence     { background: #0c1a2e; border-color: #1d4ed8; color: #7dd3fc; }
+    .v-chip.claims         { background: #1c1207; border-color: #b45309; color: #fbbf24; max-width: 100%; }
+
+    .error-msg {
+      background: #2d0a0a;
+      border: 1px solid #dc2626;
+      border-radius: 8px;
+      color: #f87171;
+      padding: 12px 16px;
+      font-size: 14px;
+      margin-top: 14px;
+    }
+
+    /* architecture note */
+    .arch-note {
+      margin-top: 32px;
+      width: 100%;
+      max-width: 720px;
+    }
+    .arch-note h3 {
+      font-size: 13px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .p-node {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+    .p-node.highlight { border-color: #3b82f6; color: #7dd3fc; }
+    .p-arrow { color: #475569; font-size: 16px; padding: 0 2px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🎧 Customer Support Agent</h1>
+    <p>Powered by Dify · RAG · Hallucination Validation · Claude Haiku</p>
+    <div class="badge"><span class="dot"></span> Live — connected to Dify workflow</div>
+  </div>
+
+  <div class="card">
+    <div class="suggested-label">Try a question</div>
+    <div class="suggested-pills">
+      <span class="pill" onclick="setQ(this)">How do I reset my password?</span>
+      <span class="pill" onclick="setQ(this)">Can I get a refund after 60 days?</span>
+      <span class="pill" onclick="setQ(this)">How many agents on the Growth plan?</span>
+      <span class="pill" onclick="setQ(this)">Do you offer SSO?</span>
+      <span class="pill" onclick="setQ(this)">I want to sue you for losing my data</span>
+      <span class="pill" onclick="setQ(this)">Do you offer a student discount?</span>
+    </div>
+
+    <textarea id="question" placeholder="Type your support question…" rows="3"></textarea>
+    <div class="send-row">
+      <button id="ask-btn" onclick="ask()">Ask Agent</button>
+    </div>
+
+    <div class="response-area" id="response-area" style="display:none">
+      <div class="answer-box" id="answer-box"></div>
+      <div class="validation-bar" id="validation-bar"></div>
+      <div id="error-box"></div>
+    </div>
+  </div>
+
+  <div class="arch-note">
+    <h3>Pipeline</h3>
+    <div class="pipeline">
+      <div class="p-node">Start</div>
+      <div class="p-arrow">→</div>
+      <div class="p-node">Search Knowledge Base<br><small style="color:#475569">RAG · Top-5</small></div>
+      <div class="p-arrow">→</div>
+      <div class="p-node">Support Agent LLM<br><small style="color:#475569">Claude Haiku</small></div>
+      <div class="p-arrow">→</div>
+      <div class="p-node highlight">Hallucination Validator<br><small>Claude Haiku · temp=0</small></div>
+      <div class="p-arrow">→</div>
+      <div class="p-node">Grounding Enforcer<br><small style="color:#475569">Python Code Node</small></div>
+      <div class="p-arrow">→</div>
+      <div class="p-node">Verified Answer</div>
+    </div>
+  </div>
+
+  <script>
+    function setQ(el) {
+      document.getElementById('question').value = el.textContent.trim();
+    }
+
+    function getCsrf() {
+      return document.cookie.split('; ')
+        .find(r => r.startsWith('csrf_token='))?.split('=')[1] ?? '';
+    }
+
+    async function ask() {
+      const q = document.getElementById('question').value.trim();
+      if (!q) return;
+
+      const btn = document.getElementById('ask-btn');
+      const area = document.getElementById('response-area');
+      const box  = document.getElementById('answer-box');
+      const vbar = document.getElementById('validation-bar');
+      const err  = document.getElementById('error-box');
+
+      btn.disabled = true;
+      btn.textContent = 'Thinking…';
+      area.style.display = 'block';
+      box.className = 'answer-box loading';
+      box.textContent = 'Agent is searching the knowledge base and validating the answer…';
+      vbar.innerHTML = '';
+      err.innerHTML  = '';
+
+      try {
+        const resp = await fetch('/console/api/support-agent/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCsrf()
+          },
+          credentials: 'include',
+          body: JSON.stringify({ user_question: q })
+        });
+
+        if (!resp.ok) {
+          const e = await resp.json().catch(() => ({ message: `HTTP ${resp.status}` }));
+          throw new Error(e.message || `HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+
+        // ── Answer ──
+        box.className = 'answer-box';
+        box.textContent = data.answer || '(no answer returned)';
+
+        // ── Validation chips ──
+        const grounded = data.grounded;
+        const conf = parseFloat(data.confidence || 0);
+        const claims = data.unsupported_claims || 'none';
+
+        const groundedChip = `
+          <div class="v-chip ${grounded ? 'grounded-true' : 'grounded-false'}">
+            ${grounded ? '✓ Grounded' : '✗ Hallucination detected'}
+          </div>`;
+
+        const confChip = `
+          <div class="v-chip confidence">
+            Confidence: ${(conf * 100).toFixed(0)}%
+          </div>`;
+
+        const claimsChip = (!grounded && claims !== 'none') ? `
+          <div class="v-chip claims" style="flex:1 1 100%">
+            ⚠ Unsupported claims: ${claims}
+          </div>` : '';
+
+        vbar.innerHTML = groundedChip + confChip + claimsChip;
+
+      } catch (e) {
+        box.style.display = 'none';
+        err.innerHTML = `<div class="error-msg">⚠ ${e.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Ask Agent';
+      }
+    }
+
+    // Allow Ctrl+Enter to submit
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('question').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) ask();
+      });
+    });
+  </script>
+</body>
+</html>
