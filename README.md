@@ -1,7 +1,7 @@
 # Customer Support Agent
 
 > A production-grade customer support agent built on [Dify](https://github.com/langgenius/dify) (90k ⭐)
-> featuring **RAG (Retrieval-Augmented Generation)**, **tool calling**, and a
+> featuring **RAG with Weaviate vector search**, **tool calling**, and a
 > **hallucination validation pipeline** that verifies every answer against source
 > documents before returning it to the user.
 
@@ -74,8 +74,8 @@ User Question
       │
       ▼
 ┌─────────────────────┐
-│   Search Knowledge  │  ← RAG: semantic search across 3 support docs
-│       Base          │    Top-5 chunks retrieved per query
+│   Search Knowledge  │  ← Weaviate vector store: semantic search across 3 support docs
+│       Base          │    Query embedded → cosine similarity → top-5 chunks retrieved
 └──────────┬──────────┘
            │ retrieved context
            ▼
@@ -108,13 +108,29 @@ User Question
 |-------|-----------|
 | Workflow engine | [Dify](https://github.com/langgenius/dify) 1.13.2 |
 | LLM | Claude Haiku (via Anthropic plugin) |
-| Vector search | Weaviate (bundled with Dify Docker) |
+| Vector store | Weaviate (bundled with Dify Docker) |
+| Embeddingstext-embedding-3-small (OpenAI, via Dify)
+| RetrievalSemantic search — top-5 chunks, cosine similarity
 | API layer | Python 3.12 + Flask (Dify internal) |
 | Frontend demo | Vanilla HTML + nginx |
 | Infrastructure | Docker Compose (11 containers) |
 
 ---
+## Vector Search. How It Works
+Documents in the knowledge base are split into chunks and embedded into dense
+vectors by Dify's indexing pipeline (using text-embedding-3-small). These vectors
+are stored in Weaviate, an open-source vector database.
+At query time:
 
+The incoming user question is embedded into the same vector space
+Weaviate performs cosine similarity search to find the top-5 most semantically
+relevant chunks, regardless of exact keyword overlap
+Those chunks become the RETRIEVED CONTEXT passed to the Support Agent LLM
+
+This is why the agent can correctly answer paraphrased questions: it matches
+meaning, not words.
+
+---
 ## Knowledge Base
 
 Three documents covering a fictional SaaS product (SupportDesk Pro):
@@ -204,7 +220,7 @@ dify-customer-support-agent/
 Open `http://localhost` → **Knowledge** → **Create Knowledge**
 - Name: `SupportDesk Pro Docs`
 - Upload `knowledge-base/faq.md`, `return-policy.md`, `product-catalog.md`
-- Indexing: High Quality, Automatic segmentation
+- Indexing: High Quality, Automatic segmentation (this triggers Weaviate vector indexing)
 
 ### 2. Import the Workflow
 **Studio** → **Create App** → **Import DSL file** → select `dify-workflows/customer-support-agent.yml`
